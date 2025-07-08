@@ -14,6 +14,8 @@ if (session_status() === PHP_SESSION_NONE) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- AOS CSS -->
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -91,7 +93,7 @@ if (session_status() === PHP_SESSION_NONE) {
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg shadow-sm">
+ <nav class="navbar navbar-expand-lg shadow-sm">
     <div class="container">
         <a class="navbar-brand" href="<?php
             echo (isset($_SESSION['user_id']) && !empty($_SESSION['is_admin']))
@@ -155,4 +157,11 @@ if (session_status() === PHP_SESSION_NONE) {
     </div>
 </nav>
 
-<div class="container mt-4">
+ <div class="container mt-4">
+<!-- AOS JS -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+  AOS.init();
+</script>
+
+ </body

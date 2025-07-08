@@ -9,151 +9,98 @@ if (!$_SESSION['is_admin']) {
     exit();
 }
 
-// Fetch summary data
-$total_users = $conn->query("SELECT COUNT(*) FROM users")->fetch_row()[0];
-$total_books = $conn->query("SELECT COUNT(*) FROM books")->fetch_row()[0];
-$total_reviews = $conn->query("SELECT COUNT(*) FROM reviews")->fetch_row()[0];
+$message = "";
 
-// Fetch chart data
-$chart_result = $conn->query("
-    SELECT DATE_FORMAT(created_at, '%Y-%m') AS month, COUNT(*) AS total
-    FROM reviews
-    GROUP BY month ORDER BY month
-");
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $title = trim($_POST["title"]);
+    $author = trim($_POST["author"]);
+    $genre = trim($_POST["genre"]);
+    $description = trim($_POST["description"]);
+    $year = intval($_POST["publication_year"]);
 
-$months = $counts = [];
-while ($row = $chart_result->fetch_assoc()) {
-    $months[] = $row['month'];
-    $counts[] = $row['total'];
+    // Handle image upload
+    $cover_image = "";
+    if (!empty($_FILES['cover_image']['name'])) {
+        $target_dir = "../assets/images/";
+        $cover_image = basename($_FILES["cover_image"]["name"]);
+        $target_file = $target_dir . $cover_image;
+        $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+
+        $valid_types = ["jpg", "jpeg", "png", "gif"];
+        if (in_array($imageFileType, $valid_types)) {
+            if (!move_uploaded_file($_FILES["cover_image"]["tmp_name"], $target_file)) {
+                $message = "⚠️ Failed to upload image.";
+                $cover_image = "";
+            }
+        } else {
+            $message = "⚠️ Invalid image format. Only JPG, PNG, GIF allowed.";
+            $cover_image = "";
+        }
+    }
+
+    // Insert book
+    $stmt = $conn->prepare("INSERT INTO books (title, author, genre, description, publication_year, cover_image) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("ssssis", $title, $author, $genre, $description, $year, $cover_image);
+
+    if ($stmt->execute()) {
+        $message = "✅ Book added successfully!";
+    } else {
+        $message = "❌ Failed to add book.";
+    }
 }
-
-// Recent users
-$recent_users = $conn->query("SELECT name, email, created_at FROM users ORDER BY created_at DESC LIMIT 5");
 ?>
 
-<div class="container py-4">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-primary"><i class="fas fa-cogs me-2"></i>Admin Dashboard</h2>
-        <span class="text-muted"><i class="far fa-clock me-1"></i><span id="clock"></span></span>
-    </div>
+<div class="container py-5">
+    <h2 class="mb-4 fw-bold text-success"><i class="fas fa-plus me-2"></i>Add New Book</h2>
 
-    <!-- Stat Cards -->
-    <div class="row g-4 mb-4">
-        <?php
-        $stats = [
-            ['icon' => 'fa-users', 'label' => 'Users', 'value' => $total_users, 'color' => 'primary'],
-            ['icon' => 'fa-book', 'label' => 'Books', 'value' => $total_books, 'color' => 'success'],
-            ['icon' => 'fa-star', 'label' => 'Reviews', 'value' => $total_reviews, 'color' => 'warning'],
-        ];
-        foreach ($stats as $stat): ?>
-            <div class="col-md-4">
-                <div class="card text-center shadow border-0">
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <i class="fas <?= $stat['icon']; ?> fa-2x text-white bg-<?= $stat['color']; ?> p-3 rounded-circle shadow-sm"></i>
-                        </div>
-                        <h4 class="fw-bold"><?= $stat['value']; ?></h4>
-                        <p class="text-muted"><?= $stat['label']; ?></p>
-                    </div>
-                </div>
-            </div>
-        <?php endforeach; ?>
-    </div>
-
-    <!-- Admin Tools -->
-    <div class="d-flex flex-wrap gap-3 mb-5">
-        <a href="manage_books.php" class="btn btn-outline-primary"><i class="fas fa-book me-1"></i>Manage Books</a>
-        <a href="add_book.php" class="btn btn-outline-success"><i class="fas fa-plus me-1"></i>Add Book</a>
-        <a href="manage_users.php" class="btn btn-outline-secondary"><i class="fas fa-users-cog me-1"></i>Manage Users</a>
-        <a href="moderate_reviews.php" class="btn btn-outline-warning"><i class="fas fa-comments me-1"></i>Moderate Reviews</a>
-    </div>
-
-    <!-- Chart + Activity -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-8">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-chart-line me-2"></i>Monthly Review Activity</h5>
-                    <canvas id="reviewChart" height="120"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-user-clock me-2"></i>Recent Users</h5>
-                    <ul class="list-group list-group-flush small">
-                        <?php while ($u = $recent_users->fetch_assoc()): ?>
-                            <li class="list-group-item">
-                                <strong><?= htmlspecialchars($u['name']); ?></strong><br>
-                                <span class="text-muted"><?= $u['email']; ?> <br>
-                                <small><?= $u['created_at']; ?></small></span>
-                            </li>
-                        <?php endwhile; ?>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Email Notification -->
-    <div class="card shadow-sm mb-5">
+    <div class="card shadow-sm border-0">
         <div class="card-body">
-            <h5 class="card-title"><i class="fas fa-envelope me-2"></i>Send Email Notification</h5>
-            <form method="POST" action="../send_notification.php" class="row g-3">
-                <div class="col-md-3">
-                    <input type="number" name="user_id" class="form-control" placeholder="User ID" required>
+            <?php if (!empty($message)): ?>
+                <div class="alert alert-<?php echo str_contains($message, '✅') ? 'success' : 'warning'; ?> d-flex align-items-center mb-4">
+                    <i class="fas <?php echo str_contains($message, '✅') ? 'fa-check-circle' : 'fa-exclamation-circle'; ?> me-2"></i>
+                    <?php echo $message; ?>
                 </div>
-                <div class="col-md-4">
-                    <input type="text" name="subject" class="form-control" placeholder="Subject" required>
+            <?php endif; ?>
+
+            <form method="POST" enctype="multipart/form-data" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Title</label>
+                    <input type="text" name="title" class="form-control" required>
                 </div>
-                <div class="col-md-5">
-                    <input type="text" name="message" class="form-control" placeholder="Message" required>
+
+                <div class="col-md-6">
+                    <label class="form-label">Author</label>
+                    <input type="text" name="author" class="form-control" required>
                 </div>
-                <div class="col-12 text-end">
-                    <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-paper-plane me-1"></i>Send</button>
+
+                <div class="col-md-6">
+                    <label class="form-label">Genre</label>
+                    <input type="text" name="genre" class="form-control" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Publication Year</label>
+                    <input type="number" name="publication_year" class="form-control" required>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" rows="4" class="form-control" required></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Upload Cover Image</label>
+                    <input type="file" name="cover_image" class="form-control" accept=".jpg,.jpeg,.png,.gif">
+                    <small class="text-muted">Accepted formats: JPG, PNG, GIF</small>
+                </div>
+
+                <div class="col-12 mt-3">
+                    <button type="submit" class="btn btn-success me-2"><i class="fas fa-save me-1"></i> Add Book</button>
+                    <a href="dashboard.php" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Dashboard</a>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-const ctx = document.getElementById('reviewChart').getContext('2d');
-new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: <?= json_encode($months); ?>,
-        datasets: [{
-            label: 'Reviews',
-            data: <?= json_encode($counts); ?>,
-            backgroundColor: 'rgba(78, 115, 223, 0.5)',
-            borderColor: 'rgba(78, 115, 223, 1)',
-            borderWidth: 2
-        }]
-    },
-    options: {
-        scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1 } }
-        },
-        plugins: {
-            legend: { display: false }
-        }
-    }
-});
-</script>
-
-<!-- Live Clock -->
-<script>
-function updateClock() {
-    const now = new Date();
-    document.getElementById("clock").innerText = now.toLocaleString();
-}
-setInterval(updateClock, 1000);
-updateClock();
-</script>
 
 <?php include('../includes/footer.php'); ?>
