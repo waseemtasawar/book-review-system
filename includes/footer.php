@@ -26,10 +26,10 @@
 
             <div class="col-md-4 mb-3">
                 <h6 class="text-warning">Follow Us</h6>
-                <a href="#" class="text-white me-3"><i class="fab fa-facebook-f fa-lg"></i></a>
-                <a href="#" class="text-white me-3"><i class="fab fa-twitter fa-lg"></i></a>
-                <a href="#" class="text-white me-3"><i class="fab fa-instagram fa-lg"></i></a>
-                <a href="#" class="text-white"><i class="fab fa-linkedin-in fa-lg"></i></a>
+                <a href="https://www.facebook.com/share/12LaW61G6az/?mibextid=qi2Omg" class="text-white me-3"><i class="fab fa-facebook-f fa-lg"></i></a>
+                <a href="https://x.com/mhar_shahzaib97?t=dyAFlHxDICPgTYcKZMKmSw&s=09" class="text-white me-3"><i class="fab fa-twitter fa-lg"></i></a>
+                <a href="https://www.instagram.com/shahzaib_marth01?igsh=MXB5a254dHRkYXJoNg==" class="text-white me-3"><i class="fab fa-instagram fa-lg"></i></a>
+                <a href="https://www.linkedin.com/in/shahzaib-nawaz-ab80a1327?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" class="text-white"><i class="fab fa-linkedin-in fa-lg"></i></a>
             </div>
         </div>
     </div>
