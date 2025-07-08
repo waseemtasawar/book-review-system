@@ -3,72 +3,60 @@ require_once('config/db.php');
 include('includes/auth_session.php');
 include('includes/header.php');
 
-$review_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$user_id = $_SESSION['user_id'];
-$message = "";
-
-// Get review details
-$stmt = $conn->prepare("
-    SELECT r.review_text, u.name, b.title
-    FROM reviews r
-    JOIN users u ON r.user_id = u.id
-    JOIN books b ON r.book_id = b.id
-    WHERE r.id = ?
-");
-$stmt->bind_param("i", $review_id);
-$stmt->execute();
-$review = $stmt->get_result()->fetch_assoc();
-
-if (!$review) {
-    echo "<div class='alert alert-danger'>Review not found.</div>";
+// Ensure a valid review ID is passed
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+    echo "<div class='container py-5'><div class='alert alert-danger'>Invalid review ID.</div></div>";
     include('includes/footer.php');
     exit();
 }
+
+$review_id = intval($_GET['id']);
+$user_id = $_SESSION['user_id'];
+$message = "";
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reason = trim($_POST['reason']);
 
-    if ($reason) {
-        $report_stmt = $conn->prepare("INSERT INTO reports (review_id, user_id, reason) VALUES (?, ?, ?)");
-        $report_stmt->bind_param("iis", $review_id, $user_id, $reason);
-        if ($report_stmt->execute()) {
-            $message = "✅ Your report has been submitted for moderation.";
+    if (empty($reason)) {
+        $message = "❌ Please enter a reason for reporting.";
+    } else {
+        $stmt = $conn->prepare("INSERT INTO reports (review_id, user_id, reason) VALUES (?, ?, ?)");
+        $stmt->bind_param("iis", $review_id, $user_id, $reason);
+
+        if ($stmt->execute()) {
+            $message = "✅ Thank you! Your report has been submitted.";
+            echo "<script>
+                alert('Report submitted successfully.');
+                window.location.href = 'books/details.php?id=" . $_GET['book_id'] . "';
+            </script>";
+            exit();
         } else {
             $message = "❌ Failed to submit report.";
         }
-    } else {
-        $message = "⚠️ Please provide a reason.";
     }
 }
 ?>
 
-<div class="container">
-    <h2>Report Review</h2>
+<div class="container py-5">
+    <h3 class="mb-4 fw-bold text-danger"><i class="fas fa-flag me-2"></i>Report Review</h3>
 
-    <?php if ($message): ?>
-        <div class="alert <?php echo str_starts_with($message, '✅') ? 'alert-success' : 'alert-danger'; ?>">
-            <?php echo $message; ?>
-        </div>
-    <?php endif; ?>
-
-    <div class="card mb-3">
-        <div class="card-header">
-            Review from <?php echo htmlspecialchars($review['name']); ?> on "<?php echo htmlspecialchars($review['title']); ?>"
-        </div>
+    <div class="card shadow-sm border-0">
         <div class="card-body">
-            <p><?php echo nl2br(htmlspecialchars($review['review_text'])); ?></p>
+            <?php if (!empty($message)): ?>
+                <div class="alert alert-info"><?php echo $message; ?></div>
+            <?php endif; ?>
+
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Reason for Reporting</label>
+                    <textarea name="reason" class="form-control" rows="5" placeholder="Explain why you're reporting this review..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger"><i class="fas fa-paper-plane me-1"></i>Submit Report</button>
+                <a href="books/details.php?id=<?php echo isset($_GET['book_id']) ? intval($_GET['book_id']) : ''; ?>" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </form>
         </div>
     </div>
-
-    <form method="POST">
-        <div class="mb-3">
-            <label class="form-label">Why are you reporting this review?</label>
-            <textarea name="reason" class="form-control" rows="4" required></textarea>
-        </div>
-        <button type="submit" class="btn btn-danger">Submit Report</button>
-        <a href="books/details.php?id=<?php echo $review_id; ?>" class="btn btn-secondary">Cancel</a>
-    </form>
 </div>
 
 <?php include('includes/footer.php'); ?>

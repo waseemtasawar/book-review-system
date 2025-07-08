@@ -18,7 +18,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($new_password !== $confirm_password) {
         $message = "⚠️ New passwords do not match.";
     } else {
-        // Check current password
         $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
@@ -43,47 +42,70 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Reset Password</title>
+    <title>Reset Password | Book Review System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="../assets/css/style.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to right, #e0eafc, #cfdef3);
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            border-radius: 1rem;
+        }
+        .btn-primary {
+            background-color: #4e54c8;
+            border-color: #4e54c8;
+        }
+        .btn-primary:hover {
+            background-color: #6c72dd;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+    </style>
 </head>
-<body class="bg-light">
-<div class="container mt-5">
+<body>
+<div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-6 col-lg-5">
-            <div class="card shadow">
+            <div class="card shadow-lg p-4">
                 <div class="card-body">
-                    <h3 class="card-title text-center mb-4">Reset Password</h3>
+                    <h3 class="card-title text-center mb-3 fw-bold text-primary">
+                        <i class="fas fa-lock me-2"></i>Reset Password
+                    </h3>
 
                     <?php if (!empty($message)): ?>
-                        <div class="alert alert-info"><?php echo $message; ?></div>
+                        <div class="alert alert-<?php echo str_contains($message, '✅') ? 'success' : 'warning'; ?>">
+                            <?php echo $message; ?>
+                        </div>
                     <?php endif; ?>
 
-                    <form method="POST" action="">
+                    <form method="POST" novalidate>
                         <div class="mb-3">
                             <label class="form-label">Current Password</label>
-                            <input type="password" name="current_password" class="form-control" required>
+                            <input type="password" name="current_password" class="form-control" placeholder="Enter current password" required>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label">New Password</label>
-                            <input type="password" name="new_password" class="form-control" required>
+                            <input type="password" name="new_password" class="form-control" placeholder="Enter new password" required>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label">Confirm New Password</label>
-                            <input type="password" name="confirm_password" class="form-control" required>
+                            <input type="password" name="confirm_password" class="form-control" placeholder="Re-enter new password" required>
                         </div>
 
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Update Password</button>
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-key me-1"></i> Update Password</button>
                         </div>
                     </form>
 
-                    <div class="mt-3 text-center">
-                        <a href="../index.php">Back to Home</a>
+                    <div class="mt-4 text-center">
+                        <a href="../index.php" class="text-decoration-none text-muted">← Back to Home</a>
                     </div>
                 </div>
             </div>
@@ -91,7 +113,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
 </div>
 
-<!-- Optional JS -->
+<!-- Font Awesome (for icons) -->
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

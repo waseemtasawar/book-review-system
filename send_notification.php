@@ -1,10 +1,19 @@
 <?php
-require_once('config/db.php');
+// Load PHPMailer
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-// Optional: Only allow admin or server processes
+// PHPMailer source files
+require 'phpmailer/src/Exception.php';
+require 'phpmailer/src/PHPMailer.php';
+require 'phpmailer/src/SMTP.php';
+
+require_once('config/db.php');
 session_start();
+
+// Allow only admin
 if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
-    die("Access denied.");
+    die("❌ Access denied.");
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -13,32 +22,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $message = trim($_POST['message']);
 
     if (!$user_id || !$subject || !$message) {
-        die("Missing required fields.");
+        die("❌ All fields are required.");
     }
 
-    // Get user email
-    $stmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
+    // Get recipient email
+    $stmt = $conn->prepare("SELECT email, name FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $res = $stmt->get_result();
 
     if ($res->num_rows === 0) {
-        die("User not found.");
+        die("❌ User not found.");
     }
 
     $user = $res->fetch_assoc();
-    $to = $user['email'];
+    $to_email = $user['email'];
+    $to_name = $user['name'];
 
-    $headers = "From: noreply@bookreview.local\r\n";
-    $headers .= "Reply-To: noreply@bookreview.local\r\n";
-    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    // Send using PHPMailer
+    $mail = new PHPMailer(true);
 
-    if (mail($to, $subject, $message, $headers)) {
-        echo "✅ Notification sent to {$to}";
-    } else {
-        echo "❌ Failed to send email.";
+    try {
+        // SMTP config
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'shahzaibkiran4@gmail.com'; // your Gmail
+        $mail->Password   = 'yizordkcnrurrijv';         // app password
+        $mail->SMTPSecure = 'ssl';
+        $mail->Port       = 465;
+
+        // Sender and recipient
+        $mail->setFrom('shahzaibkiran4@gmail.com', 'BookReview Admin');
+        $mail->addAddress($to_email, $to_name);
+        $mail->addReplyTo('shahzaibkiran4@gmail.com', 'BookReview Admin');
+
+        // Message
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body    = nl2br(htmlspecialchars($message));
+        $mail->AltBody = $message;
+
+        $mail->send();
+        echo "<script>alert('✅ Email sent to {$to_email}'); window.location.href = 'admin/dashboard.php';</script>";
+    } catch (Exception $e) {
+        echo "<script>alert('❌ Mail error: {$mail->ErrorInfo}'); window.history.back();</script>";
     }
 } else {
-    echo "No POST data received.";
+    echo "❌ Invalid request.";
 }
 ?>
